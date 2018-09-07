@@ -1,0 +1,28 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "MRITrackPlugin",
+	"Description": "Tracking Plugin",
+	"Category": "MRI",
+	"CreatedBy": "MRI Track Team",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "MRITrackPlugin",
+			"Type": "Developer",
+			"LoadingPhase": "Default"
+		},
+    {
+      "Name" : "MRITrackEditorPlugin",
+      "Type" : "Developer",
+      "LoadingPhase" : "Default"
+    }
+	]
+}
