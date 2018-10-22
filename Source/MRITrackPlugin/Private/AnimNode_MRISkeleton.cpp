@@ -1,4 +1,3 @@
-
 #include "AnimNode_MRISkeleton.h"
 #include "MRICaptureVolume.h"
 
@@ -246,6 +245,7 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
             const QuatVec3f &quatVec = poses[mriIdx];
             FCompactPoseBoneIndex fcpIdx{ ue4Idx };
 
+   
             if( ue4Idx != 0 )
             {
                 Output.Pose[fcpIdx].SetRotation( FQuat( quatVec.q.x, quatVec.q.y, quatVec.q.z, quatVec.q.w ) );
@@ -485,4 +485,3 @@ void FAnimNode_MRISkeleton::DrawPose( FAnimInstanceProxy* DrawProxy, FCSPose< Po
 #endif
     }
 }
-

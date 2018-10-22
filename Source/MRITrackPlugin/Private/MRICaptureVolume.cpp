@@ -1,4 +1,3 @@
-
 #include "MRICaptureVolume.h"
 
 #include <EngineUtils.h>
@@ -270,6 +269,111 @@ bool AMRICaptureVolume::FindSkeletonDefinition( const FName& SkeletonName, FMRIS
     return false;
 }
 
+template <typename VictoryObjType> 
+static FORCEINLINE VictoryObjType* SpawnBP( UWorld* TheWorld,
+                                            UClass* TheBP,
+                                            const FVector& Loc,
+                                            const FRotator& Rot,
+                                            const bool bNoCollisionFail = true,
+                                            AActor* Owner = nullptr,
+                                            APawn* Instigator = nullptr ) 
+{
+    // https://wiki.unrealengine.com/Templates_in_C%2B%2B
+    if( !TheWorld ) 
+        return nullptr; 
+    if( !TheBP ) 
+        return nullptr;
+
+    FActorSpawnParameters SpawnInfo;
+    SpawnInfo.bNoCollisionFail = bNoCollisionFail;
+    SpawnInfo.Owner = Owner;
+    SpawnInfo.Instigator = Instigator;
+    SpawnInfo.bDeferConstruction = false;
+
+    return TheWorld->SpawnActor<VictoryObjType>( TheBP, Loc, Rot, SpawnInfo );
+}
+
+
+//{
+//    AActorBaseClass* NewActor = UFunctionLibrary::SpawnBP<AActorBaseClass>( GetWorld(), TheActorBluePrint, SpawnLoc, SpawnRot );
+//
+//    AActorBaseClass* NewActor = SpawnBP<AActorBaseClass>( GetWorld(), TheActorBluePrint, SpawnLoc, SpawnRot );
+//}
+
+void FindBP()
+{
+    auto const path = TEXT( "Blueprint'/Game/Items/Blueprints/BP_ItemTest.BP_ItemTest'" );
+    static ConstructorHelpers::FObjectFinder<UBlueprint> ItemBlueprint( path );
+    if( ItemBlueprint.Object ) 
+    {
+        MyItemBlueprint = ( UClass* ) ItemBlueprint.Object->GeneratedClass;
+    }
+ }
+
+void SpawnBP()
+{
+    //https://answers.unrealengine.com/questions/53689/spawn-blueprint-from-c.html
+    UWorld* const World = GetWorld();
+    if( World )
+    {
+        FActorSpawnParameters SpawnParams;
+        SpawnParams.Instigator = this;
+        AItem* DroppedItem = World->SpawnActor<ASurItem>( MyItemBlueprint, Location, Rotation, SpawnParams );
+        //if( DroppedItem )
+        //{
+        //    DroppedItem->DoTheThings();
+        //}
+    }
+
+}
+
+should just have a blue print map node of some sort to allow users to plug in their bp's?
+
+void ListAllBlueprintsInPath( FName Path, TArray<UClass*>& Result, UClass* Class )
+{
+    //https://answers.unrealengine.com/questions/89482/dynamic-blueprints-loading.html#answer-309155
+    auto Library = UObjectLibrary::CreateLibrary( Class, true, GIsEditor );
+    Library->LoadBlueprintAssetDataFromPath( Path.ToString() );
+
+    TArray<FAssetData> Assets;
+    Library->GetAssetDataList( Assets );
+
+    for( auto& Asset : Assets )
+    {
+        UBlueprint* bp = Cast<UBlueprint>( Asset.GetAsset() );
+        if( bp )
+        {
+            auto gc = bp->GeneratedClass;
+            if( gc )
+            {
+                Result.Add( gc );
+            }
+        }
+        else
+        {
+            auto GeneratedClassName = ( Asset.AssetName.ToString() + "_C" );
+
+            UClass* Clazz = FindObject<UClass>( Asset.GetPackage(), *GeneratedClassName );
+            if( Clazz )
+            {
+                Result.Add( Clazz );
+            }
+            else
+            {
+                UObjectRedirector* RenamedClassRedirector = FindObject<UObjectRedirector>( Asset.GetPackage(), *GeneratedClassName );
+                if( RenamedClassRedirector )
+                {
+                    Result.Add( CastChecked<UClass>( RenamedClassRedirector->DestinationObject ) );
+                }
+            }
+
+        }
+    }
+
+    return true;
+}
+
+
 /*
 bool AMRICaptureVolume::InitializeClient()
 {
@@ -379,5 +483,4 @@ bool AMRICaptureVolume::ShutdownClient()
 	}
 	SkeletonDefinitions.Reset();
 }
-
 */
