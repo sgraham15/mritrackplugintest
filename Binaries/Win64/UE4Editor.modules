@@ -1,0 +1,8 @@
+{
+	"BuildId": "3944462",
+	"Modules": 
+	{
+		"MRITrackEditorPlugin": "UE4Editor-MRITrackEditorPlugin.dll",
+		"MRITrackPlugin": "UE4Editor-MRITrackPlugin.dll"
+	}
+}
