@@ -64,6 +64,10 @@ public class MRITrackPlugin : ModuleRules
             PublicAdditionalLibraries.Add("TrackNetClient.lib");
             PublicDelayLoadDLLs.Add("TrackNetClient.dll");
             RuntimeDependencies.Add(Path.Combine(TrackNetClientBinPath, "TrackNetClient.dll"));
+
+            //PublicAdditionalLibraries.Add("HmdDriftCorrection.dll");
+            PublicDelayLoadDLLs.Add("HmdDriftCorrection.dll");
+            RuntimeDependencies.Add(Path.Combine(TrackNetClientBinPath, "HmdDriftCorrection.dll"));
         }
 
     }
