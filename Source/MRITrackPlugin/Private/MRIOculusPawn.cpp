@@ -118,6 +118,11 @@ void AMRIOculusPawn::CalculateHmd(const float & delta, const FRotator & inertial
                     fusedPosition = opticalPos;
                     fusedRotation = FRotator(0,0,0);
                     result = true;
+
+                    auto r1 = inertialRotation.Quaternion();
+
+                    //GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(*opticalRot.Euler().ToString()));
+                    //GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(*r1.Euler().ToString()));
                 }
             }
         }

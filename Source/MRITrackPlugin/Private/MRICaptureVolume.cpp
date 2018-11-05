@@ -317,6 +317,47 @@ bool AMRICaptureVolume::GetLatestHmdTransform(int instanceId, FVector & position
     auto quatVec = CAPI_GetBonePoseAbsolute( instanceId, HMDBoneId );
     position.Set( quatVec.v.x, quatVec.v.y, quatVec.v.z );
     rotation = FQuat(quatVec.q.x, quatVec.q.y, quatVec.q.z, quatVec.q.w);
+
+    {
+        // Hack.
+        FMatrix mtx;
+        //FVector xaxis( 1.0f, 0.0f, 0.0f );
+        //FVector yaxis( 0.0f, 0.0f, -1.0f );
+        //FVector zaxis( 0.0f, 1.0f, 0.0f );
+        // Working!!!
+        FVector xaxis1(0.0f, 1.0f, 0.0f);
+        FVector yaxis1(0.0f, 0.0f, 1.0f);
+        FVector zaxis1(-1.0f, 0.0f, 0.0f);
+        mtx.SetAxes(&xaxis1, &yaxis1, &zaxis1);
+
+
+        FVector xaxis(0.0f, 1.0f, 0.0f);
+        FVector yaxis(0.0f, 0.0f, 1.0f);
+        FVector zaxis(-1.0f, 0.0f, 0.0f);
+
+        
+        FVector origin(0,0,0);
+       // FTransform xform(xaxis, yaxis, zaxis, origin);  //!!!! this expression breaks our entire view somehow??? what the fuck
+        
+        
+        //FTransform xform( mtx );
+        //position = xform.TransformPosition( position );
+        //rotation = xform.TransformRotation( rotation );
+
+        //q = q.Inverse();
+        //rotation = q * rotation;
+        //position = q * position;
+
+        position = mtx.TransformPosition(position);
+        //position /= 100.0f;
+
+
+        ///auto det = mtx.RotDeterminant();
+        //FQuat q(mtx.Rotator());
+        //q.Normalize();
+        //rotation = q * rotation;
+    }
+
     return true;
 }
 
