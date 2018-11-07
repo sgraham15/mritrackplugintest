@@ -56,6 +56,8 @@ private:
 
     bool SearchForAndLoadDll(void * dllHandle, FString _searchBase, FString _dllName);
 
+    FQuat previousFusionResult;
+
 public:
     UFUNCTION(BlueprintCallable, Category="MRI")
     void CalculateHmd(const float & delta, const FRotator & inertialRotation, bool & result, FVector & fusedPosition, FRotator & fusedRotation);

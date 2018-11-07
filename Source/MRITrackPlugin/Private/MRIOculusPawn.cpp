@@ -29,7 +29,7 @@ AMRIOculusPawn::AMRIOculusPawn(const FObjectInitializer & ObjectInitializer)
     SetTickGroup(TG_PrePhysics);
     CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
     trackId = 0;
-
+    previousFusionResult = FQuat::Identity;
 
 }
 
@@ -73,6 +73,7 @@ void AMRIOculusPawn::CalculateHmd(const float & delta, const FRotator & inertial
     bool success = CaptureVolume->GetLatestHmdTransform(trackId, opticalPos, opticalRot);
     if (success)
     {
+        opticalPos *= 0.01;
         if (!hasInitializedSensorFusion)
         {
             FString dllName = "HmdDriftCorrection.dll";
@@ -105,7 +106,12 @@ void AMRIOculusPawn::CalculateHmd(const float & delta, const FRotator & inertial
             auto getFunc = (NpHmd_GetOrientationCorrection)FPlatformProcess::GetDllExport(dllHandle, *getFuncName);
 
             auto opticalQuat = FQuatToNpQuaternion(opticalRot);
-            auto inertialQuat = RotatorToNpQuaternion(inertialRotation);
+            //auto opticalQuat = NpHmdQuaternion{ -opticalRot.Z, -opticalRot.X, -opticalRot.Y, -opticalRot.W };
+            //auto inertialQuat = RotatorToNpQuaternion(inertialRotation);
+
+            auto currentRotation = inertialRotation.Quaternion();
+            auto correctedRotation = previousFusionResult * currentRotation.Inverse();
+            auto inertialQuat = FQuatToNpQuaternion(correctedRotation);
 
             NpHmdResult fuseResult = updateFunc( hmdHandle, &opticalQuat, &inertialQuat, delta );
             if (fuseResult == NpHmdResult::OK)
@@ -114,15 +120,20 @@ void AMRIOculusPawn::CalculateHmd(const float & delta, const FRotator & inertial
                 if (getFunc(hmdHandle, &fusedQuat) == NpHmdResult::OK)
                 {
                     //fusedPosition = opticalPos;
-                    //fusedRotation = NpQuaternionToRotator(fusedQuat);
+                    previousFusionResult = NpQuaternionToFQuat(fusedQuat);
+                    auto output = NpQuaternionToRotator(fusedQuat);
+
+                    fusedRotation = output;
                     fusedPosition = opticalPos;
-                    fusedRotation = FRotator(0,0,0);
+                    //fusedRotation = FRotator(0,0,0);
                     result = true;
 
                     auto r1 = inertialRotation.Quaternion();
 
                     //GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(*opticalRot.Euler().ToString()));
                     //GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(*r1.Euler().ToString()));
+                    //GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(*output.Euler().ToString()));
+
                 }
             }
         }
@@ -131,12 +142,22 @@ void AMRIOculusPawn::CalculateHmd(const float & delta, const FRotator & inertial
 
 NpHmdQuaternion AMRIOculusPawn::FQuatToNpQuaternion(const FQuat & quat )
 {
-    return NpHmdQuaternion{ quat.X, quat.Y, quat.Z, quat.W };
+    //return NpHmdQuaternion{ quat.X, quat.Y, quat.Z, quat.W };
+    //return NpHmdQuaternion{ -quat.Z, -quat.X, -quat.Y, -quat.W };
+    //return NpHmdQuaternion{ quat.Y, quat.Z, -quat.X, -quat.W };
+    //return NpHmdQuaternion{ -quat.Y, -quat.Z, -quat.X, -quat.W };
+
+    return NpHmdQuaternion{ -quat.X, quat.Z, quat.Y, quat.W };
 }
 
 FQuat AMRIOculusPawn::NpQuaternionToFQuat(const NpHmdQuaternion & quat)
 {
-    return FQuat(quat.x, quat.y, quat.z, quat.w);
+    //return FQuat(quat.x, quat.y, quat.z, quat.w);
+    //return FQuat(-quat.y, -quat.z, -quat.x, -quat.w);
+    //return FQuat(-quat.z, quat.x, quat.y, -quat.w);
+    //return FQuat(-quat.z, -quat.x, -quat.y, -quat.w);
+
+    return FQuat(-quat.x, quat.z, quat.y, quat.w);
 }
 
 NpHmdQuaternion AMRIOculusPawn::RotatorToNpQuaternion(const FRotator & rotator)
