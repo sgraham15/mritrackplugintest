@@ -131,6 +131,8 @@ TRACKNETCLIENT_API int CAPI_GetNumLocalEntities();
 //!       Ideally we could get rid of this if we stop doing things by instanceId cache which is beyond stupid in the first place.
 TRACKNETCLIENT_API void CAPI_GetUninitializedTrackEntities(int * count, int ** toids, TrackEntityIdWrapper ** teids);
 TRACKNETCLIENT_API void CAPI_SyncUnregisteredEntities();
+TRACKNETCLIENT_API int CAPI_GetRegisteredEntityCount();
+TRACKNETCLIENT_API int CAPI_GetUnregisteredEntityCount();
 
 //scaling -- Doesn't work....
 //TRACKNETCLIENT_API void CAPI_Scale( ScalingRequest request );
