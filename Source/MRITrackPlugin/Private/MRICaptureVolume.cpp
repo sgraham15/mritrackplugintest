@@ -269,6 +269,7 @@ bool AMRICaptureVolume::FindSkeletonDefinition( const FName& SkeletonName, FMRIS
     return false;
 }
 
+#if REF
 template <typename VictoryObjType> 
 static FORCEINLINE VictoryObjType* SpawnBP( UWorld* TheWorld,
                                             UClass* TheBP,
@@ -372,7 +373,7 @@ void ListAllBlueprintsInPath( FName Path, TArray<UClass*>& Result, UClass* Class
 
     return true;
 }
-
+#endif
 
 /*
 bool AMRICaptureVolume::InitializeClient()
