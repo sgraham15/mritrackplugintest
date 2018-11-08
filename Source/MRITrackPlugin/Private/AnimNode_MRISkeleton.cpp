@@ -210,11 +210,11 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
         return;
     }
 
-    auto regCount = CAPI_GetRegisteredEntityCount();
-    if( regCount == 0 )
-    {
-        return;
-    }
+    //auto regCount = CAPI_GetRegisteredEntityCount();
+    //if( regCount == 0 )
+    //{
+    //    return;
+    //}
 
     if( BoneMap.empty() && CaptureVolume && CaptureVolume->HasCreatedTrackClientFunc() )
     {
