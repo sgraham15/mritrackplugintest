@@ -251,18 +251,19 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
 
             const QuatVec3f &quatVec = poses[mriIdx];
             FCompactPoseBoneIndex fcpIdx{ ue4Idx };
-
    
-            if( ue4Idx != 0 )
+            Output.Pose[fcpIdx].SetRotation( FQuat( quatVec.q.x, quatVec.q.y, quatVec.q.z, quatVec.q.w ) );
+            Output.Pose[fcpIdx].SetTranslation( FVector( quatVec.v.x, quatVec.v.y, quatVec.v.z ) );
+            if (ue4Idx == 0)
             {
-                Output.Pose[fcpIdx].SetRotation( FQuat( quatVec.q.x, quatVec.q.y, quatVec.q.z, quatVec.q.w ) );
-                Output.Pose[fcpIdx].SetTranslation( FVector( quatVec.v.x, quatVec.v.y, quatVec.v.z ) );
+	            // Tracking is y-up, world is z-up. TODO: consider getting this from TrackClient?
+	            FQuat rootRot(quatVec.q.x, quatVec.q.y, quatVec.q.z, quatVec.q.w);
+	            auto xAxisRot = FRotator(0, 0, 90).Quaternion();
+	            xAxisRot *= rootRot;
+	            Output.Pose[fcpIdx].SetRotation( xAxisRot);
+	            Output.Pose[fcpIdx].SetTranslation(rootRot.Inverse() * Output.Pose[fcpIdx].GetTranslation());
             }
-            if( 0 )//ue4Idx == 0 )
-            {
-                Output.Pose[fcpIdx].SetRotation( FQuat( quatVec.q.x, quatVec.q.z, quatVec.q.y, -quatVec.q.w ) );
-                Output.Pose[fcpIdx].SetTranslation( FVector( quatVec.v.x, quatVec.v.z, quatVec.v.y ) );
-            }
+		    
             UE_LOG( LogTemp, Warning, TEXT( "Pos: x: %f, y: %f, z: %f" ), quatVec.v.x, quatVec.v.y, quatVec.v.z );
             Output.Pose[fcpIdx].DiagnosticCheck_IsValid();
         }
