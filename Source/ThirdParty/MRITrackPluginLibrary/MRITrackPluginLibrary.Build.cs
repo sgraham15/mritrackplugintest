@@ -13,11 +13,9 @@ public class MRITrackPluginLibrary : ModuleRules
 		{
 			// Add the import library
 			PublicLibraryPaths.Add(Path.Combine(ModuleDirectory, "x64", "Release"));
-			PublicAdditionalLibraries.Add("ExampleLibrary.lib");
-            PublicAdditionalLibraries.Add("TrackNetClient.lib");
+			PublicAdditionalLibraries.Add("TrackNetClient.lib");
 
             // Delay-load the DLL, so we can load it from the right place first
-            PublicDelayLoadDLLs.Add("ExampleLibrary.dll");
             PublicDelayLoadDLLs.Add("TrackNetClient.dll");
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)

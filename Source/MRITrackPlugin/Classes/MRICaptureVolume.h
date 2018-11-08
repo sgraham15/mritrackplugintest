@@ -7,6 +7,10 @@
 #include "MRICaptureVolume.generated.h"
 
 
+// forward decl
+struct TrackEntityIdWrapper;
+
+
 UENUM( BlueprintType )
 enum class EMRITimestampType : uint8
 {
@@ -116,6 +120,7 @@ class MRITRACKPLUGIN_API AMRICaptureVolume : public AActor
 	 * Note: This is potentially expensive and the result should be cached.
 	 * @return The first AMRIClientOrigin actor found in @World.
 	 */
+    public:
 	UFUNCTION( BlueprintCallable, Category="MRI" )
 	static AMRICaptureVolume* FindDefaultCaptureVolume( UWorld* World );
 
@@ -154,6 +159,15 @@ public:
 	//void NatNetFrameReceivedCallback_Internal( struct sFrameOfMocapData* NewFrame );
     //void ValidateAuthenticationToken(const char* challengeToken, char* authToken);
 
+    // make these into UFUNCTIONs for blueprint callability?
+    //bool GetLatestHMDPosition(int instanceId, FVector & position );
+    //bool GetLatestHMDRotation(int instanceId, FRotator & rotation );
+
+    bool GetLatestHmdTransform(int instanceId, FVector & position, FQuat & rotation);
+
+    static TrackEntityIdWrapper ConvertGuidToTeid( const FGuid & guid );
+    static FGuid ConvertTeidToGuid( const TrackEntityIdWrapper & teid );
+
 protected:
 	//~ Begin AActor Interface
 	//virtual void PreInitializeComponents() override;
@@ -164,6 +178,8 @@ protected:
 private:
     bool SetDefaultSkeletonSettings();
     bool ToggleTracking();
+
+    bool CheckOrInitHmdBone( int instanceId );
 
 	//class NatNetClient* Client = nullptr;
 
@@ -177,6 +193,8 @@ private:
     int TrackObjectId{ 200 };
     int TrackInstanceId{ -1 };
     TArray<int32> InstanceIds;
+
+    int HMDBoneId{ -1 };
     
     UPROPERTY()
     TMap< int32, FMRISkeletonDefinition > SkeletonDefinitions;

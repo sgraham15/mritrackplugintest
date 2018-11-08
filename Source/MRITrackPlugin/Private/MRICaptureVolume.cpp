@@ -46,7 +46,24 @@ void AMRICaptureVolume::BeginPlay()
         HasCreatedTrackClient = CAPI_CreateTrackClient( "Binaries/ThirdParty/MRITrackPluginLibrary/Win64/TrackNetClient.dll", ITRACK_VERSION_NUM, UNREALENGINE );
         auto serverAddrCStr = TCHAR_TO_ANSI( *ServerAddress );
         auto b = CAPI_SetRemote( TCHAR_TO_ANSI( *FString( "http://" + ServerAddress + ":8080" ) ), serverAddrCStr, serverAddrCStr );
-        ToggleTracking();
+        
+#define TEST_OCULUS 1
+
+#if TEST_OCULUS
+        if( b )
+        {
+            const int instanceId = 0;
+            const int hmd_toid = 42;
+
+            auto teid = CAPI_CreateTrackEntity(hmd_toid, instanceId);
+            InstanceIds.Add(instanceId);
+            ToggleTracking();
+        }
+        else
+        {
+            checkf(false, TEXT("Failed to initialize tracking"));
+        }
+#endif
     }
 }
 
@@ -269,7 +286,115 @@ bool AMRICaptureVolume::FindSkeletonDefinition( const FName& SkeletonName, FMRIS
     return false;
 }
 
-#if REF
+
+//bool AMRICaptureVolume::GetLatestHMDPosition( int instanceId, FVector & position )
+//{
+//    if( !CheckOrInitHmdBone( instanceId ) )
+//        return false;
+//        
+//    auto quatVec = CAPI_GetBonePoseAbsolute( instanceId, HMDBoneId );
+//    position.Set( quatVec.v.x, quatVec.v.y, quatVec.v.z );
+//    return true;
+//}
+//
+//bool AMRICaptureVolume::GetLatestHMDRotation( int instanceId, FRotator & rotation )
+//{
+//    if (!CheckOrInitHmdBone(instanceId))
+//        return false;
+//
+//    auto quatVec = CAPI_GetBonePoseAbsolute( instanceId, HMDBoneId );
+//    rotation = FRotator( FQuat(quatVec.q.x, quatVec.q.y, quatVec.q.z, quatVec.q.w) );
+//    return true;
+//}
+
+
+bool AMRICaptureVolume::GetLatestHmdTransform(int instanceId, FVector & position, FQuat & rotation)
+{
+    if ( !InstanceIds.Contains( instanceId ) || !IsTracking )
+        return false;
+    if (!CheckOrInitHmdBone(instanceId))
+        return false;
+
+    auto quatVec = CAPI_GetBonePoseAbsolute( instanceId, HMDBoneId );
+    position.Set( quatVec.v.x, quatVec.v.y, quatVec.v.z );
+    rotation = FQuat(quatVec.q.x, quatVec.q.y, quatVec.q.z, quatVec.q.w);
+    /*
+    {
+        // Hack.
+        FMatrix mtx;
+        //FVector xaxis( 1.0f, 0.0f, 0.0f );
+        //FVector yaxis( 0.0f, 0.0f, -1.0f );
+        //FVector zaxis( 0.0f, 1.0f, 0.0f );
+        // Working!!!
+        FVector xaxis1(0.0f, 1.0f, 0.0f);
+        FVector yaxis1(0.0f, 0.0f, 1.0f);
+        FVector zaxis1(-1.0f, 0.0f, 0.0f);
+        mtx.SetAxes(&xaxis1, &yaxis1, &zaxis1);
+
+        FVector xaxis(0.0f, 1.0f, 0.0f);
+        FVector yaxis(0.0f, 0.0f, 1.0f);
+        FVector zaxis(-1.0f, 0.0f, 0.0f);
+
+        
+        FVector origin(0,0,0);
+       // FTransform xform(xaxis, yaxis, zaxis, origin);  //!!!! this expression breaks our entire view somehow??? what the fuck
+                
+        //FTransform xform( mtx );
+        //position = xform.TransformPosition( position );
+        //rotation = xform.TransformRotation( rotation );
+
+        //q = q.Inverse();
+        //rotation = q * rotation;
+        //position = q * position;
+        rotation = FQuat(-rotation.Z, -rotation.X, rotation.Y, -rotation.W);
+        position = mtx.TransformPosition(position);
+        //position /= 100.0f;
+
+
+        ///auto det = mtx.RotDeterminant();
+        //FQuat q(mtx.Rotator());
+        //q.Normalize();
+        //rotation = q * rotation;
+    }
+    //*/
+
+    return true;
+}
+
+
+bool AMRICaptureVolume::CheckOrInitHmdBone(int instanceId)
+{
+    if( HMDBoneId >= 0 )
+        return true;
+
+    int boneId = CAPI_GetBoneIndexByName(instanceId, "HMD");
+    if (boneId >= 0)
+    {
+        HMDBoneId = boneId;
+        return true;
+    }
+
+    return false;
+}
+
+TrackEntityIdWrapper AMRICaptureVolume::ConvertGuidToTeid(const FGuid & guid)
+{
+    TrackEntityIdWrapper teid;
+    teid.e0 = guid[0];
+    teid.e1 = guid[1];
+    teid.e2 = guid[2];
+    teid.e3 = guid[3];
+    return teid;
+}
+
+FGuid AMRICaptureVolume::ConvertTeidToGuid(const TrackEntityIdWrapper & teid)
+{
+    FGuid guid(teid.e0, teid.e1, teid.e2, teid.e3);
+    return guid;
+}
+
+#if Ref
+
 template <typename VictoryObjType> 
 static FORCEINLINE VictoryObjType* SpawnBP( UWorld* TheWorld,
                                             UClass* TheBP,
@@ -373,6 +498,7 @@ void ListAllBlueprintsInPath( FName Path, TArray<UClass*>& Result, UClass* Class
 
     return true;
 }
+
 #endif
 
 /*

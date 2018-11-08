@@ -5,7 +5,6 @@
 #include "Core.h"
 #include "ModuleManager.h"
 #include "IPluginManager.h"
-#include "ExampleLibrary.h"
 
 #define LOCTEXT_NAMESPACE "FMRITrackPluginModule"
 
@@ -29,7 +28,7 @@ void FMRITrackPluginModule::StartupModule()
 
 	if (ExampleLibraryHandle)
 	{
-        FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT( "ThirdPartyLibraryError", "Succeeded in loading library." ) );
+        //FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT( "ThirdPartyLibraryError", "Succeeded in loading library." ) );
 		// Call the test function in the third party library that opens a message box
 		//ExampleLibraryFunction();
 	}
