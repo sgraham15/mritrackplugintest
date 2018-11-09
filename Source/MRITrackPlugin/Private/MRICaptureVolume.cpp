@@ -42,8 +42,7 @@ void AMRICaptureVolume::BeginPlay()
     {
         GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Red, FString::Printf( TEXT( "YOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO" ) ) );
         //InitializeClient();
-        // Do we need path here???  Not used!!!
-        HasCreatedTrackClient = CAPI_CreateTrackClient( "Binaries/ThirdParty/MRITrackPluginLibrary/Win64/TrackNetClient.dll", ITRACK_VERSION_NUM, UNREALENGINE );
+        HasCreatedTrackClient = CAPI_CreateTrackClient( ITRACK_VERSION_NUM, UNREALENGINE );
         auto serverAddrCStr = TCHAR_TO_ANSI( *ServerAddress );
         auto b = CAPI_SetRemote( TCHAR_TO_ANSI( *FString( "http://" + ServerAddress + ":8080" ) ), serverAddrCStr, serverAddrCStr );
         
@@ -100,7 +99,8 @@ void AMRICaptureVolume::Tick(float DeltaSeconds)
             int count = 0;
             int *toids = nullptr;
             TrackEntityIdWrapper *teids = nullptr;
-            CAPI_GetUninitializedTrackEntities( &count, &toids, &teids );
+		    int *avatarIds = nullptr;
+            CAPI_GetUninitializedTrackEntities( &count, &toids, &teids, &avatarIds );
 
             for( int i = 0; i < count; ++i )
             {

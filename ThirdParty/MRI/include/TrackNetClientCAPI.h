@@ -96,7 +96,7 @@ TRACKNETCLIENT_API void CAPI_SetResponseCallback( TrackNetResponse_Callback call
 //TRACKNETCLIENT_API void CAPI_SetScalingTestResultsRequestCallback( ScalingTestResultsRequest_Callback callback );
 
 TRACKNETCLIENT_API bool CAPI_IsServerReachable();
-TRACKNETCLIENT_API bool CAPI_CreateTrackClient( const char *dllPath, ITrackVersion version, ConversionDescriptorMode convDescMode );
+TRACKNETCLIENT_API bool CAPI_CreateTrackClient(ITrackVersion version, ConversionDescriptorMode convDescMode);
 TRACKNETCLIENT_API bool CAPI_SetRemote( const char * rpcUrl, const char * hostname, const char * auxHostname );
 TRACKNETCLIENT_API void CAPI_EliminateNoise();
 TRACKNETCLIENT_API bool CAPI_StartTrackingEntities( TrackEntityIdWrapper * entities, int size );
@@ -129,7 +129,7 @@ TRACKNETCLIENT_API int CAPI_GetRosterSize();
 TRACKNETCLIENT_API int CAPI_GetNumLocalEntities();
 //! @note Use this to get an array of track entities that TrackClient knows about, but the CAPI layer hasn't registered yet.
 //!       Ideally we could get rid of this if we stop doing things by instanceId cache which is beyond stupid in the first place.
-TRACKNETCLIENT_API void CAPI_GetUninitializedTrackEntities(int * count, int ** toids, TrackEntityIdWrapper ** teids);
+TRACKNETCLIENT_API void CAPI_GetUninitializedTrackEntities(int * count, int ** toids, TrackEntityIdWrapper ** teids, int ** avatarIds );
 TRACKNETCLIENT_API void CAPI_SyncUnregisteredEntities();
 TRACKNETCLIENT_API int CAPI_GetRegisteredEntityCount();
 TRACKNETCLIENT_API int CAPI_GetUnregisteredEntityCount();
