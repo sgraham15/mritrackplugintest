@@ -42,10 +42,13 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MRI")
     int trackId;
 
-private:
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    USceneComponent * SceneComponent;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
     UCameraComponent * CameraComponent;
 
+private:
     bool hasInitializedSensorFusion{ false };
     void * hmdHandle;
     void * dllHandle;

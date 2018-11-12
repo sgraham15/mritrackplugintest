@@ -15,8 +15,11 @@ AMRIOculusPawnBase::AMRIOculusPawnBase(const FObjectInitializer & ObjectInitiali
     // Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
     PrimaryActorTick.bCanEverTick = true;
     SetTickGroup(TG_PrePhysics);
+    SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
     CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
     CameraComponent->bLockToHmd = false;
+    CameraComponent->SetupAttachment(SceneComponent);
+    CameraComponent->SetRelativeRotation(FRotator(0,90,0));
     trackId = 0;
 }
 
@@ -85,10 +88,11 @@ void AMRIOculusPawnBase::CalculateHmd(const float & delta, const FRotator & iner
 
     if (success)
     {
-        // Tracking is y-up, world is z-up. TODO: consider getting this from TrackClient?
-        auto axisCorrection = FRotator(0, 0, 90).Quaternion();
-        opticalPos = opticalRot.Inverse() * opticalPos;
-        opticalRot = axisCorrection * opticalRot;
+        //// Tracking is y-up, world is z-up. TODO: consider getting this from TrackClient?
+        ////auto axisCorrection = FRotator(0, 0, 90).Quaternion();
+        //auto axisCorrection = FQuat::MakeFromEuler(FVector(90,0,0));
+        //opticalPos = opticalRot.Inverse() * opticalPos;
+        //opticalRot = axisCorrection * opticalRot;
 
         if (hasInitializedSensorFusion)
         {
@@ -111,10 +115,14 @@ void AMRIOculusPawnBase::CalculateHmd(const float & delta, const FRotator & iner
     }
 
     // set rotation
-    finalTransform.SetRotation(inertialQuat * lastRotationCorrection);
+    //finalTransform.SetRotation(inertialQuat * lastRotationCorrection);
+    finalTransform.SetRotation(opticalRot);
+
 
     // apply final transformation
     SetActorTransform(finalTransform);
+    //CameraComponent->SetRelativeRotation(FRotator::MakeFromEuler(FVector(0,0,90)));
+
 
     // debug
     //GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(*opticalRot.Euler().ToString()));

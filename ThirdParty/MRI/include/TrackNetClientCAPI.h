@@ -32,11 +32,12 @@ enum ITrackVersion { ITRACK_VERSION_NUM = 18 };
 
 enum ConversionDescriptorMode
 {
-    RAW,
+    NONE,
     CRYENGINE,
     UNITY,
     MOTIONBUILDER,
-    UNREALENGINE
+    UNREALENGINE,
+    UNREALENGINE_RELATIVE
 };
 
 struct StartingPosition
@@ -96,7 +97,7 @@ TRACKNETCLIENT_API void CAPI_SetResponseCallback( TrackNetResponse_Callback call
 //TRACKNETCLIENT_API void CAPI_SetScalingTestResultsRequestCallback( ScalingTestResultsRequest_Callback callback );
 
 TRACKNETCLIENT_API bool CAPI_IsServerReachable();
-TRACKNETCLIENT_API bool CAPI_CreateTrackClient( const char *dllPath, ITrackVersion version, ConversionDescriptorMode convDescMode );
+TRACKNETCLIENT_API bool CAPI_CreateTrackClient( ITrackVersion version, ConversionDescriptorMode convDescMode );
 TRACKNETCLIENT_API bool CAPI_SetRemote( const char * rpcUrl, const char * hostname, const char * auxHostname );
 TRACKNETCLIENT_API void CAPI_EliminateNoise();
 TRACKNETCLIENT_API bool CAPI_StartTrackingEntities( TrackEntityIdWrapper * entities, int size );
@@ -113,8 +114,13 @@ TRACKNETCLIENT_API const char * CAPI_GetBoneNameByIndex( int instanceId, int bon
 TRACKNETCLIENT_API QuatVec3f CAPI_GetBonePoseAbsolute( int instanceId, int boneIndex );
 TRACKNETCLIENT_API QuatVec3f CAPI_GetBonePoseAbsoluteRaw( int instanceId, int boneIndex );
 TRACKNETCLIENT_API QuatVec3f CAPI_GetBonePoseRelative( int instanceId, int boneIndex );
+TRACKNETCLIENT_API QuatVec3f CAPI_GetBonePoseAbsoluteWithOverride(int instanceId, int boneIndex, ConversionDescriptorMode overrideMode);
+TRACKNETCLIENT_API QuatVec3f CAPI_GetBonePoseRelativeWithOverride(int instanceId, int boneIndex, ConversionDescriptorMode overrideMode);
+
 TRACKNETCLIENT_API void CAPI_GetAllBonePosesRelative( int instanceId, QuatVec3f **poses, int32_t* boneCount );
 TRACKNETCLIENT_API void CAPI_GetAllBonePosesAbsolute( int instanceId, QuatVec3f **poses, int32_t *boneCount );
+TRACKNETCLIENT_API void CAPI_GetAllBonePosesRelativeWithOverride(int instanceId, QuatVec3f **poses, int32_t* boneCount, ConversionDescriptorMode overrideMode);
+TRACKNETCLIENT_API void CAPI_GetAllBonePosesAbsoluteWithOverride(int instanceId, QuatVec3f **poses, int32_t *boneCount, ConversionDescriptorMode overrideMode);
 TRACKNETCLIENT_API QuatVec3f CAPI_GetBonePoseRelativeRaw( int instanceId, int boneIndex );
 TRACKNETCLIENT_API void CAPI_SetStartingPose( int instanceId, const char *poseName, Vector3f pos, float rotationRadians );
 TRACKNETCLIENT_API void CAPI_SetStartingMating( int instanceId, int hostInstanceId, const char *hostBone, const char *slaveBone );
@@ -129,7 +135,7 @@ TRACKNETCLIENT_API int CAPI_GetRosterSize();
 TRACKNETCLIENT_API int CAPI_GetNumLocalEntities();
 //! @note Use this to get an array of track entities that TrackClient knows about, but the CAPI layer hasn't registered yet.
 //!       Ideally we could get rid of this if we stop doing things by instanceId cache which is beyond stupid in the first place.
-TRACKNETCLIENT_API void CAPI_GetUninitializedTrackEntities(int * count, int ** toids, TrackEntityIdWrapper ** teids);
+TRACKNETCLIENT_API void CAPI_GetUninitializedTrackEntities(int * count, int ** toids, TrackEntityIdWrapper ** teids, int ** avatarIds );
 TRACKNETCLIENT_API void CAPI_SyncUnregisteredEntities();
 TRACKNETCLIENT_API int CAPI_GetRegisteredEntityCount();
 TRACKNETCLIENT_API int CAPI_GetUnregisteredEntityCount();

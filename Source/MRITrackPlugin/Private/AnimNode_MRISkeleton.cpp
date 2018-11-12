@@ -240,7 +240,7 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
     int32_t boneCount = 0;
     QuatVec3f *poses = nullptr;
     //CAPI_GetAllBonePosesAbsolute( 0, &poses, &boneCount );
-    CAPI_GetAllBonePosesRelative( 0, &poses, &boneCount );
+    CAPI_GetAllBonePosesRelativeWithOverride( 0, &poses, &boneCount, ConversionDescriptorMode::UNREALENGINE_RELATIVE );
 
     if( poses != nullptr )
     {
@@ -256,12 +256,21 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
             Output.Pose[fcpIdx].SetTranslation( FVector( quatVec.v.x, quatVec.v.y, quatVec.v.z ) );
             if (ue4Idx == 0)
             {
-	            // Tracking is y-up, world is z-up. TODO: consider getting this from TrackClient?
-	            FQuat rootRot(quatVec.q.x, quatVec.q.y, quatVec.q.z, quatVec.q.w);
-	            auto xAxisRot = FRotator(0, 0, 90).Quaternion();
-	            xAxisRot *= rootRot;
-	            Output.Pose[fcpIdx].SetRotation( xAxisRot);
-	            Output.Pose[fcpIdx].SetTranslation(rootRot.Inverse() * Output.Pose[fcpIdx].GetTranslation());
+	            //// Tracking is y-up, world is z-up. TODO: consider getting this from TrackClient?
+	            //FQuat rootRot(quatVec.q.x, quatVec.q.y, quatVec.q.z, quatVec.q.w);
+	            //auto xAxisRot = FRotator(0, 0, 90).Quaternion();
+	            //xAxisRot *= rootRot;
+	            //Output.Pose[fcpIdx].SetRotation( xAxisRot);
+	            //Output.Pose[fcpIdx].SetTranslation(rootRot.Inverse() * Output.Pose[fcpIdx].GetTranslation());
+
+                // still need to rotate characters 90 degrees
+                const auto rootQuatVec = CAPI_GetBonePoseAbsoluteWithOverride(0, 0, ConversionDescriptorMode::UNREALENGINE );
+                FVector rootPos(FVector(rootQuatVec.v.x, rootQuatVec.v.y, rootQuatVec.v.z));
+                FQuat rootRot(rootQuatVec.q.x, rootQuatVec.q.y, rootQuatVec.q.z, rootQuatVec.q.w);
+                rootRot *= FQuat::MakeFromEuler(FVector(0,0,-90)); // is this right?
+
+                Output.Pose[fcpIdx].SetRotation(rootRot);
+                Output.Pose[fcpIdx].SetTranslation(rootPos);
             }
 		    
             UE_LOG( LogTemp, Warning, TEXT( "Pos: x: %f, y: %f, z: %f" ), quatVec.v.x, quatVec.v.y, quatVec.v.z );
