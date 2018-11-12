@@ -267,7 +267,8 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
                 const auto rootQuatVec = CAPI_GetBonePoseAbsoluteWithOverride(0, 0, ConversionDescriptorMode::UNREALENGINE );
                 FVector rootPos(FVector(rootQuatVec.v.x, rootQuatVec.v.y, rootQuatVec.v.z));
                 FQuat rootRot(rootQuatVec.q.x, rootQuatVec.q.y, rootQuatVec.q.z, rootQuatVec.q.w);
-                rootRot *= FQuat::MakeFromEuler(FVector(0,0,-90)); // is this right?
+                rootRot *= FQuat::MakeFromEuler(FVector(0,-90,0)); // is this right?
+                rootRot *= FQuat::MakeFromEuler(FVector(0, 0, -90));
 
                 Output.Pose[fcpIdx].SetRotation(rootRot);
                 Output.Pose[fcpIdx].SetTranslation(rootPos);
