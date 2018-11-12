@@ -19,7 +19,7 @@ AMRIOculusPawnBase::AMRIOculusPawnBase(const FObjectInitializer & ObjectInitiali
     CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
     CameraComponent->bLockToHmd = false;
     CameraComponent->SetupAttachment(SceneComponent);
-    CameraComponent->SetRelativeRotation(FRotator(0,90,0));
+    //CameraComponent->SetRelativeRotation(FRotator(0,90,0));
     trackId = 0;
 }
 
