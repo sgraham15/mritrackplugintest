@@ -32,12 +32,15 @@ enum ITrackVersion { ITRACK_VERSION_NUM = 18 };
 
 enum ConversionDescriptorMode
 {
-    NONE,
+    RAW,
     CRYENGINE,
-    UNITY,
     MOTIONBUILDER,
+    OPENVR,
+    UNITY,
     UNREALENGINE,
-    UNREALENGINE_RELATIVE
+    UNREALENGINE_RELATIVE,
+    VBS,
+    VBS_RELATIVE
 };
 
 struct StartingPosition
@@ -96,6 +99,7 @@ TRACKNETCLIENT_API void CAPI_SetResponseCallback( TrackNetResponse_Callback call
 //TRACKNETCLIENT_API void CAPI_SetScalingMarkersRequestCallback( ScalingMarkersRequest_Callback callback );
 //TRACKNETCLIENT_API void CAPI_SetScalingTestResultsRequestCallback( ScalingTestResultsRequest_Callback callback );
 
+
 TRACKNETCLIENT_API bool CAPI_IsServerReachable();
 TRACKNETCLIENT_API bool CAPI_CreateTrackClient( ITrackVersion version, ConversionDescriptorMode convDescMode );
 TRACKNETCLIENT_API bool CAPI_SetRemote( const char * rpcUrl, const char * hostname, const char * auxHostname );
@@ -105,9 +109,13 @@ TRACKNETCLIENT_API void CAPI_StartTrackingEntitiesByInstanceId( int * instanceId
 TRACKNETCLIENT_API bool CAPI_StartTracking();
 TRACKNETCLIENT_API bool CAPI_StopAllTracking();
 TRACKNETCLIENT_API bool CAPI_ApplyLatestServerData( int renderFrameNum );
+
+
 TRACKNETCLIENT_API TrackEntityIdWrapper CAPI_CreateTrackEntity( int objectId, int instanceId );
 TRACKNETCLIENT_API bool CAPI_SetTrackEntityById( int instanceId, int toid, TrackEntityIdWrapper teid );
-TRACKNETCLIENT_API int CAPI_GetBoneIndexByName( int instanceId, const char *boneName );
+TRACKNETCLIENT_API TrackEntityIdWrapper CAPI_GetOrCreateTrackEntity( int instanceId, int toid, TrackEntityIdWrapper teid );
+
+TRACKNETCLIENT_API int CAPI_GetBoneIndexByName( int instanceId, const char *boneName, bool isCaseSensitive  );
 
 TRACKNETCLIENT_API int CAPI_GetBoneCount( int instanceId );
 TRACKNETCLIENT_API const char * CAPI_GetBoneNameByIndex( int instanceId, int boneIndex );

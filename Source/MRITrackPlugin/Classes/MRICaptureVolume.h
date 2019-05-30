@@ -93,6 +93,7 @@ class MRITRACKPLUGIN_API AMRICaptureVolume : public AActor
     bool FindSkeletonDefinition(const FName& SkeletonName, FMRISkeletonDefinition& OutSkelDef);
 
     bool HasCreatedTrackClientFunc() const { return HasCreatedTrackClient; };
+    bool HasSetRemoteFunc() const { return HasSetRemote; };
 
 	/**
 	 * Retrieves latest available FMRIRigidBodyState for the rigid body identified by the
@@ -181,6 +182,8 @@ private:
 
     bool CheckOrInitHmdBone( int instanceId );
 
+    bool SetRemote();
+
 	//class NatNetClient* Client = nullptr;
 
 	/** Controls access to @LatestRigidBodyStates map. */
@@ -189,10 +192,12 @@ private:
 	/** Copied from AWorldSettings::WorldToMeters for use in the NatNet callback (which happens on another thread). */
 	//float CachedWorldToMeters;
     bool HasCreatedTrackClient{ false };
+    bool HasSetRemote{ false };
     bool IsTracking{ false };
     int TrackObjectId{ 200 };
     int TrackInstanceId{ -1 };
     TArray<int32> InstanceIds;
+    float LastSetRemoteAttemptSeconds{ 0.0f };
 
     int HMDBoneId{ -1 };
     

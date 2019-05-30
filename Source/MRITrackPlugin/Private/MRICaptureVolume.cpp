@@ -40,15 +40,16 @@ void AMRICaptureVolume::BeginPlay()
     UE_LOG( LogTemp, Warning, TEXT( "BeginPlay" ) );
     if (bAutoInitialize)
     {
-        GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Red, FString::Printf( TEXT( "YOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO" ) ) );
+        //GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Red, FString::Printf( TEXT( "YOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO" ) ) );
         //InitializeClient();
         // Do we need path here???  Not used!!!
         //HasCreatedTrackClient = CAPI_CreateTrackClient( ITRACK_VERSION_NUM, UNREALENGINE );
         HasCreatedTrackClient = CAPI_CreateTrackClient(ITRACK_VERSION_NUM, UNREALENGINE_RELATIVE);
-        auto serverAddrCStr = TCHAR_TO_ANSI( *ServerAddress );
-        auto b = CAPI_SetRemote( TCHAR_TO_ANSI( *FString( "http://" + ServerAddress + ":8080" ) ), serverAddrCStr, serverAddrCStr );
+        SetRemote();
+        //auto serverAddrCStr = TCHAR_TO_ANSI( *ServerAddress );
+        //HasSetRemote = CAPI_SetRemote( TCHAR_TO_ANSI( *FString( "http://" + ServerAddress + ":8080" ) ), serverAddrCStr, serverAddrCStr );
         
-#define TEST_OCULUS 1
+//#define TEST_OCULUS 1
 
 #if TEST_OCULUS
         if( b )
@@ -81,6 +82,14 @@ void AMRICaptureVolume::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 }
 
+bool AMRICaptureVolume::SetRemote()
+{
+    auto serverAddrCStr = TCHAR_TO_ANSI(*ServerAddress);
+    HasSetRemote = CAPI_SetRemote(TCHAR_TO_ANSI(*FString("http://" + ServerAddress + ":8080")), serverAddrCStr, serverAddrCStr);
+    
+    return HasSetRemote;
+}
+
 void AMRICaptureVolume::Tick(float DeltaSeconds)
 {
 	Super::Tick( DeltaSeconds );
@@ -89,6 +98,24 @@ void AMRICaptureVolume::Tick(float DeltaSeconds)
 
 	FrameUpdateLock.Lock();
 
+    if (!HasSetRemote)
+    {
+        const float MaxDeltaSeconds = 20.0f;
+        float currTimeSeconds = FPlatformTime::Seconds();
+        auto delta = currTimeSeconds - LastSetRemoteAttemptSeconds;
+        if (delta > MaxDeltaSeconds)
+        {
+            bool success = SetRemote();
+            LastSetRemoteAttemptSeconds = currTimeSeconds;
+            if (!success)
+            {
+                FrameUpdateLock.Unlock();
+                return;
+            }
+        }
+    }
+    
+    
     static int renderFrameNum = 0;
 
     if( CAPI_ApplyLatestServerData( renderFrameNum++ ) )
@@ -116,7 +143,6 @@ void AMRICaptureVolume::Tick(float DeltaSeconds)
             }
         }
 
-        
 #if 0
         for( int id : InstanceIds )
         {
@@ -372,7 +398,7 @@ bool AMRICaptureVolume::CheckOrInitHmdBone(int instanceId)
     if( HMDBoneId >= 0 )
         return true;
 
-    int boneId = CAPI_GetBoneIndexByName(instanceId, "HMD");
+    int boneId = CAPI_GetBoneIndexByName(instanceId, "HMD", false);
     if (boneId >= 0)
     {
         HMDBoneId = boneId;

@@ -29,7 +29,7 @@ public class MRITrackPlugin : ModuleRules
 			new string[]
 			{
 				"Core",
-				"MRITrackPluginLibrary",
+				//"MRITrackPluginLibrary",
 				"Projects",
                 "CoreUObject",
                 "Engine",

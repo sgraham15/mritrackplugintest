@@ -166,14 +166,10 @@ void FAnimNode_MRISkeleton::Update_AnyThread( const FAnimationUpdateContext& Con
 //*/
 }
 
-
-
-
 FName FAnimNode_MRISkeleton::GetMappedBoneName( int BoneId )
 {
     return "";
 }
-
 
 void FAnimNode_MRISkeleton::CacheStreamingBoneIds()
 {
@@ -182,7 +178,6 @@ void FAnimNode_MRISkeleton::CacheStreamingBoneIds()
     //    BoneStreamingIds[BoneIdx] = FindBoneId( GetMappedBoneName( BoneIdx ) );
     //}
 }
-
 
 bool FAnimNode_MRISkeleton::TryUpdateSkeletonDefinition()
 {
@@ -202,10 +197,11 @@ bool FAnimNode_MRISkeleton::TryUpdateSkeletonDefinition()
     return false;
 }
 
-
 void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
 {
-    if( ( CaptureVolume == nullptr ) || !CaptureVolume->HasCreatedTrackClientFunc() )
+    if( ( CaptureVolume == nullptr ) || 
+        !CaptureVolume->HasCreatedTrackClientFunc() || 
+        !CaptureVolume->HasSetRemoteFunc() )
     {
         return;
     }
@@ -216,7 +212,25 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
     //    return;
     //}
 
-    if( BoneMap.empty() && CaptureVolume && CaptureVolume->HasCreatedTrackClientFunc() )
+    int numLocalEnitities = CAPI_GetNumLocalEntities();
+    if (numLocalEnitities == 0)
+    {
+        return;
+    }
+    
+    int rosterSize = CAPI_GetRosterSize();
+    if ( rosterSize == 0 )
+    {
+        return;
+    }
+
+    int boneCount0 = CAPI_GetBoneCount(0);
+    if (boneCount0 == 0)
+    {
+        return;
+    }
+
+    if( BoneMap.empty()  )
     {
         //int numEntities = CAPI_GetNumLocalEntities();
         {
@@ -225,10 +239,14 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
             {
                 auto boneName = Output.Pose.GetBoneContainer().GetReferenceSkeleton().GetBoneName( ue4Idx ).ToString();
                 const char *ansiBoneName = TCHAR_TO_ANSI( *boneName );
-                int mriIdx = CAPI_GetBoneIndexByName( 0, ansiBoneName );
+                int mriIdx = CAPI_GetBoneIndexByName( 0, ansiBoneName, false );
                 if( mriIdx >= 0 )
                 {
                     BoneMap.insert( std::make_pair( mriIdx, ue4Idx ) );
+                }
+                else
+                {
+                    int y = 0;
                 }
             }
         }
@@ -241,6 +259,7 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
     QuatVec3f *poses = nullptr;
     //CAPI_GetAllBonePosesAbsolute( 0, &poses, &boneCount );
     CAPI_GetAllBonePosesRelativeWithOverride( 0, &poses, &boneCount, ConversionDescriptorMode::UNREALENGINE_RELATIVE );
+    //CAPI_GetAllBonePosesRelativeWithOverride(0, &poses, &boneCount, ConversionDescriptorMode::RAW);
 
     if( poses != nullptr )
     {
@@ -249,9 +268,22 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
             int mriIdx = boneMapPair.first;
             int ue4Idx = boneMapPair.second;
 
+            if (mriIdx >= boneCount ) 
+            {
+                int y = 0;
+                continue;
+            }
+            if (ue4Idx >= Output.Pose.GetNumBones())
+            {
+                int y = Output.Pose.GetNumBones();
+                continue;
+            }
+
             const QuatVec3f &quatVec = poses[mriIdx];
             FCompactPoseBoneIndex fcpIdx{ ue4Idx };
    
+            
+
             Output.Pose[fcpIdx].SetRotation( FQuat( quatVec.q.x, quatVec.q.y, quatVec.q.z, quatVec.q.w ) );
             Output.Pose[fcpIdx].SetTranslation( FVector( quatVec.v.x, quatVec.v.y, quatVec.v.z ) );
             if (ue4Idx == 0)
@@ -264,11 +296,15 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
 	            //Output.Pose[fcpIdx].SetTranslation(rootRot.Inverse() * Output.Pose[fcpIdx].GetTranslation());
 
                 // still need to rotate characters 90 degrees
-                const auto rootQuatVec = CAPI_GetBonePoseAbsoluteWithOverride(0, 0, ConversionDescriptorMode::UNREALENGINE );
+                //const auto rootQuatVec = CAPI_GetBonePoseAbsoluteWithOverride(0, 0, ConversionDescriptorMode::UNREALENGINE );
+                const auto rootQuatVec = CAPI_GetBonePoseAbsoluteWithOverride(0, 0, ConversionDescriptorMode::UNREALENGINE);
+                //const auto rootQuatVec = quatVec;
                 FVector rootPos(FVector(rootQuatVec.v.x, rootQuatVec.v.y, rootQuatVec.v.z));
                 FQuat rootRot(rootQuatVec.q.x, rootQuatVec.q.y, rootQuatVec.q.z, rootQuatVec.q.w);
                 rootRot *= FQuat::MakeFromEuler(FVector(0,-90,0)); // is this right?
                 rootRot *= FQuat::MakeFromEuler(FVector(0, 0, -90));
+                
+                //rootRot *= FQuat::MakeFromEuler(FVector(90, 0, 0));
 
                 Output.Pose[fcpIdx].SetRotation(rootRot);
                 Output.Pose[fcpIdx].SetTranslation(rootPos);
@@ -483,6 +519,7 @@ void FAnimNode_MRISkeleton::DrawPose( FAnimInstanceProxy* DrawProxy, FCSPose< Po
         //DrawDebugString( World, End, BoneName.ToString(), nullptr, FColor::White, 0.0f );
 #else
         const FVector offset( 100.0f, 0.0f, 0.0f );
+        //const FVector offset(0.0f, 0.0f, 0.0f);
         const FVector WorldStart = ComponentToWorld.TransformPosition( Start ) + offset;
         const FVector WorldEnd = ComponentToWorld.TransformPosition( End ) + offset;
         DrawProxy->AnimDrawDebugLine( WorldStart, WorldEnd, LineColor );
