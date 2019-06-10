@@ -34,13 +34,12 @@ enum ConversionDescriptorMode
 {
     RAW,
     CRYENGINE,
-    MOTIONBUILDER,
-    OPENVR,
     UNITY,
+    MOTIONBUILDER,
     UNREALENGINE,
     UNREALENGINE_RELATIVE,
     VBS,
-    VBS_RELATIVE
+    OPENVR
 };
 
 struct StartingPosition

@@ -3,23 +3,29 @@
 #include <EngineUtils.h>
 #include <string>
 #include <DrawDebugHelpers.h>
+#include <ConstructorHelpers.h>
 #include "TrackNetClientCAPI.h"
+#include "MRISkeletonComponent.h"
 
 
 AMRICaptureVolume::AMRICaptureVolume( const FObjectInitializer& ObjectInitializer )
-	: Super( ObjectInitializer )
+    : Super( ObjectInitializer )
 {
     ServerAddress = "127.0.0.1";
-	ClientAddress = "127.0.0.1";
+    ClientAddress = "127.0.0.1";
     PrimaryActorTick.bCanEverTick = true;
+
+    // give me a transform from global!
+    RootComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootSceneComponent"));
+
     /*
 
     ConnectionType = EOptitrackClientConnectionType::Multicast;
     
-	RootComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>( this, TEXT( "RootSceneComponent" ) );
+    RootComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>( this, TEXT( "RootSceneComponent" ) );
 
 #if WITH_EDITORONLY_DATA
-	RootComponent->bVisualizeComponent = true;
+    RootComponent->bVisualizeComponent = true;
 #endif
 */
 }
@@ -36,6 +42,8 @@ AMRICaptureVolume::AMRICaptureVolume( const FObjectInitializer& ObjectInitialize
 void AMRICaptureVolume::BeginPlay()
 {
     Super::BeginPlay();
+
+    CurrInstanceId = 0;
 
     UE_LOG( LogTemp, Warning, TEXT( "BeginPlay" ) );
     if (bAutoInitialize)
@@ -78,7 +86,7 @@ void AMRICaptureVolume::EndPlay(const EEndPlayReason::Type EndPlayReason)
     //    ShutdownClient();
     //}
     
-    auto res = CAPI_Shutdown();
+    //!!!auto res = CAPI_Shutdown();
 
 }
 
@@ -92,11 +100,11 @@ bool AMRICaptureVolume::SetRemote()
 
 void AMRICaptureVolume::Tick(float DeltaSeconds)
 {
-	Super::Tick( DeltaSeconds );
+    Super::Tick( DeltaSeconds );
 
-    UE_LOG( LogTemp, Warning, TEXT( "Tick" ) );
+    //UE_LOG( LogTemp, Warning, TEXT( "Tick" ) );
 
-	FrameUpdateLock.Lock();
+    FrameUpdateLock.Lock();
 
     if (!HasSetRemote)
     {
@@ -120,7 +128,7 @@ void AMRICaptureVolume::Tick(float DeltaSeconds)
 
     if( CAPI_ApplyLatestServerData( renderFrameNum++ ) )
     {
-        static int instanceId = 0;
+        //static int instanceId = 0;
 
         int size = CAPI_GetRosterSize();
         if( size > 0 )
@@ -130,15 +138,78 @@ void AMRICaptureVolume::Tick(float DeltaSeconds)
             TrackEntityIdWrapper *teids = nullptr;
             int *avatarIds = nullptr;
 
-            CAPI_GetUninitializedTrackEntities( &count, &toids, &teids, &avatarIds );
+            CAPI_GetUninitializedTrackEntities( &count, &toids, &teids, &avatarIds ); // if we don't shutdown between runs, this will come back as 0
 
             for( int i = 0; i < count; ++i )
             {
-                if( CAPI_SetTrackEntityById( instanceId, toids[i], teids[i] ) )
+                if( CAPI_SetTrackEntityById(CurrInstanceId, toids[i], teids[i]))
                 {
-                    InstanceIds.Add( instanceId );
-                    ++instanceId;
+                    InstanceIds.Add(CurrInstanceId);
+                    //++instanceId;
+
+                    int avatarId = avatarIds[i];
+
+                    if (SpawnActors.Num() == 0)
+                    {
+                        UE_LOG(LogTemp, Error, TEXT("Spawn list is empty!!!!!"));
+                        return;
+                    }
+
+                    if (avatarId >= SpawnActors.Num())
+                        avatarId = 0;
+
+                    auto & spawnClass = SpawnActors[avatarId];
+                    auto * world = GetWorld();
+
+                    FActorSpawnParameters params;
+                    params.Owner = this;
+                    params.Instigator = Instigator;
+                    params.bNoFail = true;
+
+                    AActor *spawned = world->SpawnActor<AActor>(spawnClass, GetTransform(), params);
+                    if (spawned == nullptr)
+                    {
+                        UE_LOG(LogTemp, Error, TEXT("Unable to spawn boris!!!"));
+                    }
+                    else
+                    {
+                        //spawned->GetComponentByClass(TSubclassOf<FAnimNode_MRISkeleton>());
+
+                        TArray<UMRISkeletonComponent*> skelComps;
+                        spawned->GetComponents(skelComps);
+                        if (skelComps.Num() > 0)
+                        {
+                            UMRISkeletonComponent* foundComp = skelComps[0];
+                            foundComp->SourceSkeletonAssetName = FName(*FString::FromInt(CurrInstanceId));
+                            int y = 0;
+                            //do stuff with FoundComp
+                        }
+                    }
+
+                    ++CurrInstanceId;
                     // TODO: Instantiate prefab!!!
+                    //{
+                    //	//FActorSpawnParameters spawnInfo;
+                    //	//GetWorld()->SpawnActor<>(FVector( 0.0f, 0.0f, 0.0f ), FRotator(0.0f,0.0f, 0.0f), spawnInfo);
+                    //	UClass *MyItemBlueprint = nullptr;
+                    //	static ConstructorHelpers::FObjectFinder<UBlueprint> ItemBlueprint(TEXT("Blueprint'/Game/Items/Blueprints/BP_ItemTest.BP_ItemTest'"));
+                    //	if (ItemBlueprint.Object) {
+                    //		MyItemBlueprint = (UClass*)ItemBlueprint.Object->GeneratedClass;
+                    //	}
+
+
+                    //	UWorld* const World = GetWorld();
+                    //	if (World) {
+                    //		FActorSpawnParameters SpawnParams;
+                    //		SpawnParams.Instigator = this;
+                    //		AItem* DroppedItem = World->SpawnActor<ASurItem>(MyItemBlueprint, FVector(0.0f, 0.0f, 0.0f), FRotator(0.0f, 0.0f, 0.0f), SpawnParams);
+                    //		if (DroppedItem) {
+                    //			DroppedItem->DoTheThings();
+                    //		}
+                    //	}
+
+
+                    //}
                 }
             }
         }
@@ -171,58 +242,58 @@ void AMRICaptureVolume::Tick(float DeltaSeconds)
     }
 
     /*
-	if ( bDrawDebugSkeletons )
-	{
-		for ( const TPair< int32, FOptitrackSkeletonDefinition >& skelDefEntry : SkeletonDefinitions )
-		{
-			const int32 skelId = skelDefEntry.Key;
-			const FOptitrackSkeletonDefinition& skelDef = skelDefEntry.Value;
+    if ( bDrawDebugSkeletons )
+    {
+        for ( const TPair< int32, FOptitrackSkeletonDefinition >& skelDefEntry : SkeletonDefinitions )
+        {
+            const int32 skelId = skelDefEntry.Key;
+            const FOptitrackSkeletonDefinition& skelDef = skelDefEntry.Value;
 
-			if ( ! LatestSkeletonStates.Contains( skelId ) )
-			{
-				continue;
-			}
+            if ( ! LatestSkeletonStates.Contains( skelId ) )
+            {
+                continue;
+            }
 
-			const FOptitrackSkeletonState& skelState = LatestSkeletonStates[skelId];
+            const FOptitrackSkeletonState& skelState = LatestSkeletonStates[skelId];
 
-			for ( int32 boneId = 0; boneId < skelDef.Bones.Num(); ++boneId )
-			{
-				const FOptitrackBoneDefinition& boneDef = skelDef.Bones[boneId];
-				const int32 parentBoneId = boneDef.ParentId;
-				const FTransform& boneTransform = skelState.WorldSpaceBoneTransforms[boneId];
+            for ( int32 boneId = 0; boneId < skelDef.Bones.Num(); ++boneId )
+            {
+                const FOptitrackBoneDefinition& boneDef = skelDef.Bones[boneId];
+                const int32 parentBoneId = boneDef.ParentId;
+                const FTransform& boneTransform = skelState.WorldSpaceBoneTransforms[boneId];
 
-				FVector Start, End;
-				FColor LineColor;
+                FVector Start, End;
+                FColor LineColor;
 
-				End = boneTransform.GetLocation();
+                End = boneTransform.GetLocation();
 
-				if ( parentBoneId >= 0 )
-				{
-					const FTransform& parentBoneTransform = skelState.WorldSpaceBoneTransforms[parentBoneId];
-					Start = parentBoneTransform.GetLocation();
-					LineColor = FColor::White;
-				}
-				else
-				{
-					Start = GetTransform().GetLocation();
-					LineColor = FColor::Red;
-				}
+                if ( parentBoneId >= 0 )
+                {
+                    const FTransform& parentBoneTransform = skelState.WorldSpaceBoneTransforms[parentBoneId];
+                    Start = parentBoneTransform.GetLocation();
+                    LineColor = FColor::White;
+                }
+                else
+                {
+                    Start = GetTransform().GetLocation();
+                    LineColor = FColor::Red;
+                }
 
-				static const float SphereRadius = 2.0f;
+                static const float SphereRadius = 2.0f;
 
-				FVector EndToStart = (Start - End);
-				float ConeLength = EndToStart.Size();
-				float Angle = FMath::RadiansToDegrees( FMath::Atan( SphereRadius / ConeLength ) ) * 0.02f;
+                FVector EndToStart = (Start - End);
+                float ConeLength = EndToStart.Size();
+                float Angle = FMath::RadiansToDegrees( FMath::Atan( SphereRadius / ConeLength ) ) * 0.02f;
 
-				DrawDebugSphere( GetWorld(), End, SphereRadius, 10, LineColor );
-				DrawDebugCone( GetWorld(), End, EndToStart, ConeLength, Angle, Angle, 4, LineColor );
-				//DrawDebugCoordinateSystem( GetWorld(), End, boneTransform.Rotator(), SphereRadius * 4.0f, false, -1.f, 0.1f );
-				//DrawDebugString( GetWorld(), End, boneDef.Name.ToString(), nullptr, FColor::White, 0.f, true );
-			}
-		}
-	}
+                DrawDebugSphere( GetWorld(), End, SphereRadius, 10, LineColor );
+                DrawDebugCone( GetWorld(), End, EndToStart, ConeLength, Angle, Angle, 4, LineColor );
+                //DrawDebugCoordinateSystem( GetWorld(), End, boneTransform.Rotator(), SphereRadius * 4.0f, false, -1.f, 0.1f );
+                //DrawDebugString( GetWorld(), End, boneDef.Name.ToString(), nullptr, FColor::White, 0.f, true );
+            }
+        }
+    }
     */
-	FrameUpdateLock.Unlock();
+    FrameUpdateLock.Unlock();
 }
 
 
@@ -535,110 +606,110 @@ void ListAllBlueprintsInPath( FName Path, TArray<UClass*>& Result, UClass* Class
 /*
 bool AMRICaptureVolume::InitializeClient()
 {
-	check( IOptitrackNatnetPlugin::IsAvailable() );
+    check( IOptitrackNatnetPlugin::IsAvailable() );
 
-	if ( Client != nullptr )
-	{
-		UE_LOG( LogOptitrack, Error, TEXT( "AMRICaptureVolume: Not valid to call InitializeClient when already initialized" ) );
-		return false;
-	}
+    if ( Client != nullptr )
+    {
+        UE_LOG( LogOptitrack, Error, TEXT( "AMRICaptureVolume: Not valid to call InitializeClient when already initialized" ) );
+        return false;
+    }
 
-	Client = IOptitrackNatnetPlugin::Get().CreateClient();
+    Client = IOptitrackNatnetPlugin::Get().CreateClient();
 
-	if ( Client == nullptr )
-	{
-		UE_LOG( LogOptitrack, Error, TEXT( "AMRICaptureVolume: IOptitrackNatnetPlugin::CreateClient failed" ) );
-		return false;
-	}
+    if ( Client == nullptr )
+    {
+        UE_LOG( LogOptitrack, Error, TEXT( "AMRICaptureVolume: IOptitrackNatnetPlugin::CreateClient failed" ) );
+        return false;
+    }
 
-	const std::string strClientAddr( TCHAR_TO_ANSI( *ClientAddress ) );
-	const std::string strServerAddr( TCHAR_TO_ANSI( *ServerAddress ) );
+    const std::string strClientAddr( TCHAR_TO_ANSI( *ClientAddress ) );
+    const std::string strServerAddr( TCHAR_TO_ANSI( *ServerAddress ) );
 
-	sNatNetClientConnectParams connectParams;
-	connectParams.connectionType = (ConnectionType == EOptitrackClientConnectionType::Unicast) ? ConnectionType_Unicast : ConnectionType_Multicast;
-	connectParams.localAddress = strClientAddr.c_str();
-	connectParams.serverAddress = strServerAddr.c_str();
-	const ErrorCode ConnectResult = Client->Connect( connectParams );
-	if ( ConnectResult != ErrorCode_OK )
-	{
-		UE_LOG( LogOptitrack, Error, TEXT( "AMRICaptureVolume: NatNetClient::Connect failed with return code %d" ), static_cast<int32>(ConnectResult) );
-		ShutdownClient();
-		return false;
-	}
-	sDataDescriptions* DataDescriptions = nullptr;
-	const ErrorCode GetDataDescsResult = Client->GetDataDescriptionList( &DataDescriptions );
-	if ( !ensureMsgf( GetDataDescsResult == ErrorCode_OK && DataDescriptions != nullptr, TEXT( "NatNetClient::GetDataDescriptionList failed with return code %d" ), GetDataDescsResult ) )
-	{
-		ShutdownClient();
-		return false;
-	}
+    sNatNetClientConnectParams connectParams;
+    connectParams.connectionType = (ConnectionType == EOptitrackClientConnectionType::Unicast) ? ConnectionType_Unicast : ConnectionType_Multicast;
+    connectParams.localAddress = strClientAddr.c_str();
+    connectParams.serverAddress = strServerAddr.c_str();
+    const ErrorCode ConnectResult = Client->Connect( connectParams );
+    if ( ConnectResult != ErrorCode_OK )
+    {
+        UE_LOG( LogOptitrack, Error, TEXT( "AMRICaptureVolume: NatNetClient::Connect failed with return code %d" ), static_cast<int32>(ConnectResult) );
+        ShutdownClient();
+        return false;
+    }
+    sDataDescriptions* DataDescriptions = nullptr;
+    const ErrorCode GetDataDescsResult = Client->GetDataDescriptionList( &DataDescriptions );
+    if ( !ensureMsgf( GetDataDescsResult == ErrorCode_OK && DataDescriptions != nullptr, TEXT( "NatNetClient::GetDataDescriptionList failed with return code %d" ), GetDataDescsResult ) )
+    {
+        ShutdownClient();
+        return false;
+    }
 // Parse data descriptions for skeleton definitions.
-	const float coordScalingFactor = CachedWorldToMeters;
-	for ( int32 descIdx = 0; descIdx < DataDescriptions->nDataDescriptions; ++descIdx )
-	{
-		if ( DataDescriptions->arrDataDescriptions[descIdx].type == Descriptor_Skeleton )
-		{
-			const sSkeletonDescription& skelDesc =
-				*DataDescriptions->arrDataDescriptions[descIdx].Data.SkeletonDescription;
+    const float coordScalingFactor = CachedWorldToMeters;
+    for ( int32 descIdx = 0; descIdx < DataDescriptions->nDataDescriptions; ++descIdx )
+    {
+        if ( DataDescriptions->arrDataDescriptions[descIdx].type == Descriptor_Skeleton )
+        {
+            const sSkeletonDescription& skelDesc =
+                *DataDescriptions->arrDataDescriptions[descIdx].Data.SkeletonDescription;
 
-			FOptitrackSkeletonDefinition skelDef;
-			skelDef.Id = skelDesc.skeletonID;
-			skelDef.Name = skelDesc.szName;
+            FOptitrackSkeletonDefinition skelDef;
+            skelDef.Id = skelDesc.skeletonID;
+            skelDef.Name = skelDesc.szName;
 
-			skelDef.Bones.SetNumUninitialized( skelDesc.nRigidBodies + 1 );
-			skelDef.Bones[0].Id = 0;
-			skelDef.Bones[0].LocalOffset = FVector::ZeroVector;
-			skelDef.Bones[0].Name = "Root";
-			skelDef.Bones[0].ParentId = -1;
+            skelDef.Bones.SetNumUninitialized( skelDesc.nRigidBodies + 1 );
+            skelDef.Bones[0].Id = 0;
+            skelDef.Bones[0].LocalOffset = FVector::ZeroVector;
+            skelDef.Bones[0].Name = "Root";
+            skelDef.Bones[0].ParentId = -1;
 
-			for ( int32 boneIdx = 0; boneIdx < skelDesc.nRigidBodies; ++boneIdx )
-			{
-				const sRigidBodyDescription& boneDesc = skelDesc.RigidBodies[boneIdx];
-				checkSlow( boneDesc.ID > 0 && boneDesc.ID < skelDef.Bones.Num() );
+            for ( int32 boneIdx = 0; boneIdx < skelDesc.nRigidBodies; ++boneIdx )
+            {
+                const sRigidBodyDescription& boneDesc = skelDesc.RigidBodies[boneIdx];
+                checkSlow( boneDesc.ID > 0 && boneDesc.ID < skelDef.Bones.Num() );
 
-				FOptitrackBoneDefinition& boneDef = skelDef.Bones[ boneDesc.ID ];
-				boneDef.Name = boneDesc.szName;
-				boneDef.Id = boneDesc.ID;
-				boneDef.ParentId = boneDesc.parentID;
-				// FIXME: Motive streams out skeleton definitions with inverted X coordinates.
-				boneDef.LocalOffset = FVector( -boneDesc.offsetx * coordScalingFactor, boneDesc.offsetz * coordScalingFactor, boneDesc.offsety * coordScalingFactor );
-			}
+                FOptitrackBoneDefinition& boneDef = skelDef.Bones[ boneDesc.ID ];
+                boneDef.Name = boneDesc.szName;
+                boneDef.Id = boneDesc.ID;
+                boneDef.ParentId = boneDesc.parentID;
+                // FIXME: Motive streams out skeleton definitions with inverted X coordinates.
+                boneDef.LocalOffset = FVector( -boneDesc.offsetx * coordScalingFactor, boneDesc.offsetz * coordScalingFactor, boneDesc.offsety * coordScalingFactor );
+            }
 
-			SkeletonDefinitions.Emplace( skelDef.Id, MoveTemp( skelDef ) );
-		}
-	}
-	Client->SetFrameReceivedCallback( &NatNetFrameReceivedThunk, this );
+            SkeletonDefinitions.Emplace( skelDef.Id, MoveTemp( skelDef ) );
+        }
+    }
+    Client->SetFrameReceivedCallback( &NatNetFrameReceivedThunk, this );
     sDataDescriptions* pDataDefs = NULL;
     Client->GetDataDescriptionList(&pDataDefs);
 
     // Set local/global streaming setting as well as match bone naming convention
     SetDefaultSkeletonSettings();
     
-	return true;
+    return true;
 }
 
 
 bool AMRICaptureVolume::ShutdownClient()
 {
-	if ( Client != nullptr )
-	{
-		FrameUpdateLock.Lock();
+    if ( Client != nullptr )
+    {
+        FrameUpdateLock.Lock();
 
-		//Client->Disconnect();
-		//check( IOptitrackNatnetPlugin::IsAvailable() );
-		//IOptitrackNatnetPlugin::Get().DestroyClient( Client );
-		//Client = nullptr;
-		//TimestampType = EOptitrackTimestampType::Unknown;
+        //Client->Disconnect();
+        //check( IOptitrackNatnetPlugin::IsAvailable() );
+        //IOptitrackNatnetPlugin::Get().DestroyClient( Client );
+        //Client = nullptr;
+        //TimestampType = EOptitrackTimestampType::Unknown;
 
-		FrameUpdateLock.Unlock();
+        FrameUpdateLock.Unlock();
 
-		return true;
-	}
-	else
-	{
-		UE_LOG( LogOptitrack, Error, TEXT( "AMRICaptureVolume: Not valid to call ShutdownClient when not initialized" ) );
-		return false;
-	}
-	SkeletonDefinitions.Reset();
+        return true;
+    }
+    else
+    {
+        UE_LOG( LogOptitrack, Error, TEXT( "AMRICaptureVolume: Not valid to call ShutdownClient when not initialized" ) );
+        return false;
+    }
+    SkeletonDefinitions.Reset();
 }
 */

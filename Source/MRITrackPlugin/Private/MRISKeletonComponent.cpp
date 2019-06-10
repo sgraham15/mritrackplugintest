@@ -54,7 +54,8 @@ void UMRISkeletonComponent::BeginPlay()
     {
         if( MRIAnimInstance->SourceSkeletonAssetName == NAME_None )
         {
-            MRIAnimInstance->SourceSkeletonAssetName = SourceSkeletonAssetName;
+            MRIAnimInstance->
+                SourceSkeletonAssetName = SourceSkeletonAssetName;
         }
 
         if( MRIAnimInstance->CaptureVolume == nullptr )

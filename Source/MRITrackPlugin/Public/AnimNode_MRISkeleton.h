@@ -13,16 +13,16 @@
 USTRUCT( BlueprintType )
 struct MRITRACKPLUGIN_API FAnimNode_MRISkeleton : public FAnimNode_Base
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
     FAnimNode_MRISkeleton();
 
-	void Initialize_AnyThread( const FAnimationInitializeContext& Context ) override;
-	void CacheBones_AnyThread( const FAnimationCacheBonesContext& Context ) override;
-	void Update_AnyThread( const FAnimationUpdateContext& Context ) override;
-	void Evaluate_AnyThread( FPoseContext& Output ) override;
-	//bool CanUpdateInWorkerThread() const override { return false; }
+    void Initialize_AnyThread( const FAnimationInitializeContext& Context ) override;
+    void CacheBones_AnyThread( const FAnimationCacheBonesContext& Context ) override;
+    void Update_AnyThread( const FAnimationUpdateContext& Context ) override;
+    void Evaluate_AnyThread( FPoseContext& Output ) override;
+    //bool CanUpdateInWorkerThread() const override { return false; }
 
     UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings", meta = ( PinShownByDefault ) )
     FName SourceSkeletonAssetName;

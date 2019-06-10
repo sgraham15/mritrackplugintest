@@ -4,6 +4,7 @@
 #include <Animation/AnimInstanceProxy.h>
 #include <DrawDebugHelpers.h>
 #include "TrackNetClientCAPI.h"
+#include "Engine/World.h"
 
 //TArray<FName> FAnimNode_MRISkeleton::BoneNames;
 //const int32 FAnimNode_MRISkeleton::kInvalidBoneStreamingId;// = -1;
@@ -11,9 +12,9 @@
 
 FAnimNode_MRISkeleton::FAnimNode_MRISkeleton()
 {
-	const uint8 kNumBones = static_cast<uint8>(EMRIBone::NumBones);
-	BoneMappings.SetNum( kNumBones );
-	MarkSkeletonDefinitionInvalid();
+    const uint8 kNumBones = static_cast<uint8>(EMRIBone::NumBones);
+    BoneMappings.SetNum( kNumBones );
+    MarkSkeletonDefinitionInvalid();
 
 
     /*
@@ -34,46 +35,46 @@ FAnimNode_MRISkeleton::FAnimNode_MRISkeleton()
 
 void FAnimNode_MRISkeleton::Initialize_AnyThread( const FAnimationInitializeContext& Context )
 {
-	Super::Initialize_AnyThread( Context );
+    Super::Initialize_AnyThread( Context );
 
-	MarkSkeletonDefinitionInvalid();
+    MarkSkeletonDefinitionInvalid();
 }
 
 void FAnimNode_MRISkeleton::CacheBones_AnyThread( const FAnimationCacheBonesContext& Context )
 {
     /*
-	const FBoneContainer& RequiredBones = Context.AnimInstanceProxy->GetRequiredBones();
+    const FBoneContainer& RequiredBones = Context.AnimInstanceProxy->GetRequiredBones();
 
-	for ( FBoneReference& BoneRef : BoneMappings )
-	{
+    for ( FBoneReference& BoneRef : BoneMappings )
+    {
         BoneRef.Initialize( RequiredBones );
-	}
+    }
 
     FCompactPose RefPose;
-	RefPose.SetBoneContainer( &RequiredBones );
-	RefPose.ResetToRefPose();
+    RefPose.SetBoneContainer( &RequiredBones );
+    RefPose.ResetToRefPose();
 
     // compute and cache reference world positions
     ComputePoseCorrectionTransforms(RefPose);
 
-	FCSPose<FCompactPose> CsRefPose;
-	CsRefPose.InitPose( RefPose );
+    FCSPose<FCompactPose> CsRefPose;
+    CsRefPose.InitPose( RefPose );
     
-	// Composite measurements
-	const FVector HipPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::Hip );
-	const FVector HeadPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::Head );
-	const FVector LFootPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::LFoot );
-	const FVector RFootPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::RFoot );
-	TargetScaling.TorsoLength = (HeadPos - HipPos).Size();
-	TargetScaling.AvgLegLength = ((LFootPos - HipPos).Size() + (RFootPos - HipPos).Size()) / 2.0f;
+    // Composite measurements
+    const FVector HipPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::Hip );
+    const FVector HeadPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::Head );
+    const FVector LFootPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::LFoot );
+    const FVector RFootPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::RFoot );
+    TargetScaling.TorsoLength = (HeadPos - HipPos).Size();
+    TargetScaling.AvgLegLength = ((LFootPos - HipPos).Size() + (RFootPos - HipPos).Size()) / 2.0f;
 
-	const FVector LHandPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::LHand );
-	const FVector RHandPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::RHand );
-	const FVector LShoulderPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::LShoulder );
-	const FVector RShoulderPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::RShoulder );
-	const float IntraShoulderDist = (LShoulderPos - RShoulderPos).Size();
-	const float IntraHandDist = (LHandPos - RHandPos).Size();
-	TargetScaling.AvgArmLength = (IntraHandDist - IntraShoulderDist) / 2.0f;
+    const FVector LHandPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::LHand );
+    const FVector RHandPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::RHand );
+    const FVector LShoulderPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::LShoulder );
+    const FVector RShoulderPos = GetCsBoneLocation( CsRefPose, EOptitrackBone::RShoulder );
+    const float IntraShoulderDist = (LShoulderPos - RShoulderPos).Size();
+    const float IntraHandDist = (LHandPos - RHandPos).Size();
+    TargetScaling.AvgArmLength = (IntraHandDist - IntraShoulderDist) / 2.0f;
 
     // initialize ignore bone array
     const TArray<int32> PoseIndexArray = RequiredBones.GetSkeletonToPoseBoneIndexArray();
@@ -131,37 +132,37 @@ void FAnimNode_MRISkeleton::MarkSkeletonDefinitionInvalid()
 void FAnimNode_MRISkeleton::Update_AnyThread( const FAnimationUpdateContext& Context )
 {
     //*
-	EvaluateGraphExposedInputs.Execute( Context );
+    EvaluateGraphExposedInputs.Execute( Context );
 
-	if ( CaptureVolume == nullptr )
-	{
-		return;
-	}
+    if ( CaptureVolume == nullptr )
+    {
+        return;
+    }
 
-	if ( SourceSkeletonDefinitionValid == false )
-	{
-		if ( ! TryUpdateSkeletonDefinition() )
-		{
-			return;
-		}
-	}
+    if ( SourceSkeletonDefinitionValid == false )
+    {
+        if ( ! TryUpdateSkeletonDefinition() ) //!!! This fails every time
+        {
+            return;
+        }
+    }
 
-	const bool DataAvailable = CaptureVolume->GetLatestSkeletonState( SourceSkeletonDefinition.Id, LatestSkeletonState );
-	if ( DataAvailable == false )
-	{
-		MarkSkeletonDefinitionInvalid();
-		return;
-	}
+    const bool DataAvailable = CaptureVolume->GetLatestSkeletonState( SourceSkeletonDefinition.Id, LatestSkeletonState );
+    if ( DataAvailable == false )
+    {
+        MarkSkeletonDefinitionInvalid();
+        return;
+    }
 
-	//ExtractSourceScalingFromLatestState();
-	//UpdateTargetScaleRatios();
+    //ExtractSourceScalingFromLatestState();
+    //UpdateTargetScaleRatios();
 
 #if 0
-	// HACK?
-	const float SourceHeadToAnkle = SourceScaling.TorsoLength + SourceScaling.AvgLegLength;
-	const float TargetHeadToAnkle = TargetScaling.TorsoLength + TargetScaling.AvgLegLength;
-	const float TargetRootScaleRatio = SourceHeadToAnkle / TargetHeadToAnkle;
-	LatestSkeletonState.BonePoses[1].Position.Z /= (TargetRootScaleRatio * TargetRootScaleRatio);
+    // HACK?
+    const float SourceHeadToAnkle = SourceScaling.TorsoLength + SourceScaling.AvgLegLength;
+    const float TargetHeadToAnkle = TargetScaling.TorsoLength + TargetScaling.AvgLegLength;
+    const float TargetRootScaleRatio = SourceHeadToAnkle / TargetHeadToAnkle;
+    LatestSkeletonState.BonePoses[1].Position.Z /= (TargetRootScaleRatio * TargetRootScaleRatio);
 #endif
 //*/
 }
@@ -184,6 +185,8 @@ bool FAnimNode_MRISkeleton::TryUpdateSkeletonDefinition()
     if( CaptureVolume->FindSkeletonDefinition( SourceSkeletonAssetName, SourceSkeletonDefinition ) )
     {
         SourceSkeletonDefinitionValid = true;
+
+        SourceSkeletonDefinition.Id = FCString::Atoi(*SourceSkeletonDefinition.Name.ToString());//!!!
 
         CacheStreamingBoneIds();// CaptureVolume > BoneNamingConvention );
 
@@ -224,7 +227,10 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
         return;
     }
 
-    int boneCount0 = CAPI_GetBoneCount(0);
+    int regCount = CAPI_GetRegisteredEntityCount();
+    int unregCount = CAPI_GetUnregisteredEntityCount();
+
+    int boneCount0 = CAPI_GetBoneCount(SourceSkeletonDefinition.Id);  // fix me! needs to be sent the instanceId of this TrackEntity!!!
     if (boneCount0 == 0)
     {
         return;
@@ -239,7 +245,7 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
             {
                 auto boneName = Output.Pose.GetBoneContainer().GetReferenceSkeleton().GetBoneName( ue4Idx ).ToString();
                 const char *ansiBoneName = TCHAR_TO_ANSI( *boneName );
-                int mriIdx = CAPI_GetBoneIndexByName( 0, ansiBoneName, false );
+                int mriIdx = CAPI_GetBoneIndexByName(SourceSkeletonDefinition.Id, ansiBoneName, false);
                 if( mriIdx >= 0 )
                 {
                     BoneMap.insert( std::make_pair( mriIdx, ue4Idx ) );
@@ -252,13 +258,13 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
         }
     }
 
-	Output.Pose.ResetToRefPose();
+    Output.Pose.ResetToRefPose();
     //auto boneCount = 35;
     static float x = 0.0f;
     int32_t boneCount = 0;
     QuatVec3f *poses = nullptr;
     //CAPI_GetAllBonePosesAbsolute( 0, &poses, &boneCount );
-    CAPI_GetAllBonePosesRelativeWithOverride( 0, &poses, &boneCount, ConversionDescriptorMode::UNREALENGINE_RELATIVE );
+    CAPI_GetAllBonePosesRelativeWithOverride(SourceSkeletonDefinition.Id, &poses, &boneCount, ConversionDescriptorMode::UNREALENGINE_RELATIVE);
     //CAPI_GetAllBonePosesRelativeWithOverride(0, &poses, &boneCount, ConversionDescriptorMode::RAW);
 
     if( poses != nullptr )
@@ -288,16 +294,16 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
             Output.Pose[fcpIdx].SetTranslation( FVector( quatVec.v.x, quatVec.v.y, quatVec.v.z ) );
             if (ue4Idx == 0)
             {
-	            //// Tracking is y-up, world is z-up. TODO: consider getting this from TrackClient?
-	            //FQuat rootRot(quatVec.q.x, quatVec.q.y, quatVec.q.z, quatVec.q.w);
-	            //auto xAxisRot = FRotator(0, 0, 90).Quaternion();
-	            //xAxisRot *= rootRot;
-	            //Output.Pose[fcpIdx].SetRotation( xAxisRot);
-	            //Output.Pose[fcpIdx].SetTranslation(rootRot.Inverse() * Output.Pose[fcpIdx].GetTranslation());
+                //// Tracking is y-up, world is z-up. TODO: consider getting this from TrackClient?
+                //FQuat rootRot(quatVec.q.x, quatVec.q.y, quatVec.q.z, quatVec.q.w);
+                //auto xAxisRot = FRotator(0, 0, 90).Quaternion();
+                //xAxisRot *= rootRot;
+                //Output.Pose[fcpIdx].SetRotation( xAxisRot);
+                //Output.Pose[fcpIdx].SetTranslation(rootRot.Inverse() * Output.Pose[fcpIdx].GetTranslation());
 
                 // still need to rotate characters 90 degrees
                 //const auto rootQuatVec = CAPI_GetBonePoseAbsoluteWithOverride(0, 0, ConversionDescriptorMode::UNREALENGINE );
-                const auto rootQuatVec = CAPI_GetBonePoseAbsoluteWithOverride(0, 0, ConversionDescriptorMode::UNREALENGINE);
+                const auto rootQuatVec = CAPI_GetBonePoseAbsoluteWithOverride(SourceSkeletonDefinition.Id, 0, ConversionDescriptorMode::UNREALENGINE);
                 //const auto rootQuatVec = quatVec;
                 FVector rootPos(FVector(rootQuatVec.v.x, rootQuatVec.v.y, rootQuatVec.v.z));
                 FQuat rootRot(rootQuatVec.q.x, rootQuatVec.q.y, rootQuatVec.q.z, rootQuatVec.q.w);
@@ -374,29 +380,29 @@ void FAnimNode_MRISkeleton::Evaluate_AnyThread( FPoseContext& Output )
     /*
     Output.Pose.ResetToRefPose();
 #if 0
-	if ( RetargetBaseMesh != Output.AnimInstanceProxy->GetSkelMeshComponent()->SkeletalMesh )
-	{
-		return;
-	}
+    if ( RetargetBaseMesh != Output.AnimInstanceProxy->GetSkelMeshComponent()->SkeletalMesh )
+    {
+        return;
+    }
 #endif
 
-	for ( int BoneId = 0; BoneId < static_cast<int>(EOptitrackBone::NumBones); ++BoneId )
-	{
-		PerformStreamingRetargeting( Output, BoneId );
-	}
+    for ( int BoneId = 0; BoneId < static_cast<int>(EOptitrackBone::NumBones); ++BoneId )
+    {
+        PerformStreamingRetargeting( Output, BoneId );
+    }
 
-	for ( const FCompactPoseBoneIndex fcpIdx : Output.Pose.ForEachBoneIndex() )
-	{
-		Output.Pose[fcpIdx].DiagnosticCheck_IsValid();
-	}
+    for ( const FCompactPoseBoneIndex fcpIdx : Output.Pose.ForEachBoneIndex() )
+    {
+        Output.Pose[fcpIdx].DiagnosticCheck_IsValid();
+    }
 
 //#if OPTITRACK_SKELNODE_DEBUGDRAW
     if (StreamingClientOrigin && StreamingClientOrigin->bDrawDebugSkeletons)
-	{
-		FCSPose<FCompactPose> CsPose;
-		CsPose.InitPose( Output.Pose );
-		DrawPose( Output.AnimInstanceProxy, CsPose, FColor::Green );
-	}
+    {
+        FCSPose<FCompactPose> CsPose;
+        CsPose.InitPose( Output.Pose );
+        DrawPose( Output.AnimInstanceProxy, CsPose, FColor::Green );
+    }
 //#endif
 */
 }
