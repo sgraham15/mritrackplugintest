@@ -59,7 +59,7 @@ public class MRITrackPlugin : ModuleRules
         if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
         {
             string TrackNetClientBinPath = Path.Combine(TrackNetClientPath, "lib", "Win64");
-            Log.TraceInformation(TrackNetClientBinPath);
+            //Log.TraceInformation(TrackNetClientBinPath);
             PublicLibraryPaths.Add(TrackNetClientBinPath);
             PublicAdditionalLibraries.Add("TrackNetClient.lib");
             PublicDelayLoadDLLs.Add("TrackNetClient.dll");

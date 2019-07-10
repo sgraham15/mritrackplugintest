@@ -132,7 +132,7 @@ void FAnimNode_MRISkeleton::MarkSkeletonDefinitionInvalid()
 void FAnimNode_MRISkeleton::Update_AnyThread( const FAnimationUpdateContext& Context )
 {
     //*
-    EvaluateGraphExposedInputs.Execute( Context );
+    GetEvaluateGraphExposedInputs().Execute( Context );
 
     if ( CaptureVolume == nullptr )
     {

@@ -59,7 +59,7 @@ void AMRICaptureVolume::BeginPlay()
         
 //#define TEST_OCULUS 1
 
-#if TEST_OCULUS
+#ifdef TEST_OCULUS
         if( b )
         {
             const int instanceId = 0;
@@ -495,7 +495,7 @@ FGuid AMRICaptureVolume::ConvertTeidToGuid(const TrackEntityIdWrapper & teid)
     return guid;
 }
 
-#if Ref
+#ifdef Ref
 
 template <typename VictoryObjType> 
 static FORCEINLINE VictoryObjType* SpawnBP( UWorld* TheWorld,
