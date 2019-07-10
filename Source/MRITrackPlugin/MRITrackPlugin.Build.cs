@@ -33,6 +33,8 @@ public class MRITrackPlugin : ModuleRules
 				"Projects",
                 "CoreUObject",
                 "Engine",
+                "Networking",
+                "Sockets",
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);

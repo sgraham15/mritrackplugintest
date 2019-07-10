@@ -28,7 +28,6 @@ enum class EMRIBoneNamingConvention : uint8
     BVH,
 };
 
-
 UENUM( BlueprintType )
 enum class EMRIBone : uint8
 {
