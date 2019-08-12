@@ -18,31 +18,26 @@ void ASmartTriggerClient::BeginPlay()
 {
 	Super::BeginPlay();
 	
+    auto Endpoint = FIPv4Endpoint( FIPv4Address::Any, ServerPort );
+    const int32 BufferSize = 2 * 1024 *1024;
+    ListenSocket = FUdpSocketBuilder( "SmartTriggerClientSocket" )
+        .AsNonBlocking()
+        .AsReusable()
+        .BoundToEndpoint( Endpoint )
+        .WithReceiveBufferSize( BufferSize );
 
+    if( ListenSocket )
     {
-        FIPv4Address Addr;
-        FIPv4Address::Parse( ServerAddress, Addr );
-
-        //Create Socket
-
-        auto Endpoint = FIPv4Endpoint( Addr, ServerPort );
-        
-        //BUFFER SIZE
-        int32 BufferSize = 2 * 1024 * 1024;
-
-        ListenSocket = FUdpSocketBuilder( "SmartTriggerClientSocket" )
-            .AsNonBlocking()
-            .AsReusable()
-            .BoundToEndpoint( Endpoint )
-            .WithReceiveBufferSize( BufferSize );
-
         FTimespan ThreadWaitTime = FTimespan::FromMilliseconds( 100 );
         UDPReceiver = new FUdpSocketReceiver( ListenSocket, ThreadWaitTime, TEXT( "SMC UDP Receiver" ) );
         UDPReceiver->OnDataReceived().BindUObject( this, &ASmartTriggerClient::Recv );
 
         UDPSender = new FUdpSocketSender( ListenSocket, TEXT( "SMC UDP Sender" ) );
-    }
 
+        IdentifyServer();
+
+        UDPReceiver->Start(); // Starts listen thread so we don't have to use Tick().
+    }
 }
 
 void ASmartTriggerClient::Recv( const FArrayReaderPtr& ArrayReaderPtr, const FIPv4Endpoint& EndPt )
@@ -51,8 +46,6 @@ void ASmartTriggerClient::Recv( const FArrayReaderPtr& ArrayReaderPtr, const FIP
 
     //FAnyCustomData Data;
     //*ArrayReaderPtr << Data;		//Now de-serializing! See AnyCustomData.h
-
-    
 
     //BP Event
     //BPEvent_DataReceived( Data );
@@ -63,8 +56,7 @@ void ASmartTriggerClient::Recv( const FArrayReaderPtr& ArrayReaderPtr, const FIP
 void ASmartTriggerClient::EndPlay( const EEndPlayReason::Type EndPlayReason )
 {
     Super::EndPlay( EndPlayReason );
-
-
+    
     if( UDPReceiver )
     {
         delete UDPReceiver;
@@ -90,24 +82,19 @@ void ASmartTriggerClient::EndPlay( const EEndPlayReason::Type EndPlayReason )
 // Called every frame
 //void ASmartTriggerClient::Tick(float DeltaTime)
 //{
-//	Super::Tick(DeltaTime);
+//	  Super::Tick(DeltaTime);
+//    UDPReceiver->Tick();
 //}
 
 bool ASmartTriggerClient::IdentifyServer()
 {
-    const FString sendBuffer( "identify" );
-    
-    TSharedRef<TArray<uint8>, ESPMode::ThreadSafe> data;
-
     FIPv4Address Addr;
     FIPv4Address::Parse( ServerAddress, Addr );
     FIPv4Endpoint recipient( Addr, ServerPort );
 
-    const FString sendStr( "identify" );
-    uint8 msgBytes[8];
-    StringToBytes( sendStr, msgBytes, sizeof( msgBytes ) );
-    data->Append( msgBytes, sizeof( msgBytes ) );
-
+    const uint8 msgBytes[8] = { 'i', 'd', 'e', 'n', 't', 'i', 'f', 'y' };
+    TSharedRef<TArray<uint8>, ESPMode::ThreadSafe> data( MakeShareable( new TArray<uint8>( msgBytes, sizeof( msgBytes ) ) ) );
+    
     IsServerIdentified = false;
 
     if( !UDPSender->Send( data, recipient ) )
@@ -128,9 +115,6 @@ bool ASmartTriggerClient::AddClientEndpoint( int address )
 {
     if( ClientEndpointSet.Find( address ) == nullptr )
     {
-        //auto strList = ClientEndpointSet.stringList();
-        //strList.append( FString( ToStringAddress( address ) ) );
-        //ClientEndpointSet.setStringList( strList );
         ClientEndpointSet.Add( address );
 
         return true;
