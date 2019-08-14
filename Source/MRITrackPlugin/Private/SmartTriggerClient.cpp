@@ -34,23 +34,22 @@ void ASmartTriggerClient::BeginPlay()
 
         UDPSender = new FUdpSocketSender( ListenSocket, TEXT( "SMC UDP Sender" ) );
 
-        IdentifyServer();
-
-        UDPReceiver->Start(); // Starts listen thread so we don't have to use Tick().
+        if( IdentifyServer() )
+        {
+            UDPReceiver->Start(); // Starts listen thread so we don't have to use Tick().
+        }
     }
 }
 
 void ASmartTriggerClient::Recv( const FArrayReaderPtr& ArrayReaderPtr, const FIPv4Endpoint& EndPt )
 {
-    //ScreenMsg( "Received bytes", ArrayReaderPtr->Num() );
-
-    //FAnyCustomData Data;
-    //*ArrayReaderPtr << Data;		//Now de-serializing! See AnyCustomData.h
-
-    //BP Event
-    //BPEvent_DataReceived( Data );
-    ProcessReceived( ArrayReaderPtr );
-
+    // Handle processing on GameThread
+    FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady( [this, ArrayReaderPtr] () {
+        ProcessReceived( ArrayReaderPtr );
+        // BPEvent_DataReceived( Data );
+        //ScreenMsg( "Received bytes", ArrayReaderPtr->Num() );
+    }, 
+    TStatId(), NULL, ENamedThreads::GameThread );
 }
 
 void ASmartTriggerClient::EndPlay( const EEndPlayReason::Type EndPlayReason )
