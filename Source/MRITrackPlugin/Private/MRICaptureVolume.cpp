@@ -92,6 +92,7 @@ void AMRICaptureVolume::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 bool AMRICaptureVolume::SetRemote()
 {
+    // TODO: Look at qt version and make this async.
     auto serverAddrCStr = TCHAR_TO_ANSI(*ServerAddress);
     HasSetRemote = CAPI_SetRemote(TCHAR_TO_ANSI(*FString("http://" + ServerAddress + ":8080")), serverAddrCStr, serverAddrCStr);
     
